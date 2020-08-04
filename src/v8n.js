@@ -3,7 +3,7 @@ import Context from "./Context";
 function v8n() {
   return typeof Proxy !== "undefined"
     ? proxyContext(new Context())
-    : proxyContextEs5(new Context());
+    : proxylessContext(new Context());
 }
 
 // Custom rules
@@ -39,11 +39,11 @@ function proxyContext(context) {
   });
 }
 
-function proxyContextEs5(context) {
-  const addRuleSet = (ruleSet, targetContext) =>
+function proxylessContext(context) {
+  const addRuleSet = (ruleSet, targetContext) => {
     Object.keys(ruleSet).forEach(prop => {
       targetContext[prop] = (...args) => {
-        const newContext = proxyContextEs5(targetContext._clone());
+        const newContext = proxylessContext(targetContext._clone());
         const contextWithRuleApplied = newContext._applyRule(
           ruleSet[prop],
           prop
@@ -51,6 +51,8 @@ function proxyContextEs5(context) {
         return contextWithRuleApplied;
       };
     });
+    return targetContext;
+  };
 
   const contextWithAvailableRules = addRuleSet(availableRules, context);
   const contextWithAllRules = addRuleSet(
@@ -61,7 +63,7 @@ function proxyContextEs5(context) {
   Object.keys(availableModifiers).forEach(prop => {
     Object.defineProperty(contextWithAllRules, prop, {
       get: () => {
-        const newContext = proxyContextEs5(contextWithAllRules._clone());
+        const newContext = proxylessContext(contextWithAllRules._clone());
         return newContext._applyModifier(availableModifiers[prop], prop);
       }
     });
